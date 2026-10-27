@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Udvikling i indbrud | Østjylland</title>
+<style>
+  :root {color-scheme:light;--ink:#18232c;--muted:#596875;--line:#e4e8eb;--red:#b9363b;--green:#237d57;--bg:#fff}
+  * {box-sizing:border-box}
+  html,body {margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+  .wrap {max-width:850px;padding:18px 18px 12px;margin:auto}
+  h1 {margin:0 0 5px;font-size:clamp(20px,3vw,27px);line-height:1.2;letter-spacing:-.025em}
+  .intro {font-size:13px;line-height:1.5;color:var(--muted);margin:0 0 15px}
+  .legend {display:flex;flex-wrap:wrap;gap:9px 20px;margin-bottom:12px;font-size:12px;color:var(--ink)}
+  .legend span {display:flex;align-items:center;gap:7px}
+  .key {width:22px;height:9px;background:#657884;border-radius:2px}
+  .key.short {opacity:.47}
+  .row {display:grid;grid-template-columns:110px minmax(0,1fr);gap:8px;align-items:center;border-top:1px solid var(--line);padding:9px 0}
+  .name {font-weight:700;font-size:14px}
+  .series {display:grid;gap:5px}
+  .barline {height:19px;position:relative}
+  .track {position:absolute;left:0;right:42px;top:0;bottom:0}
+  .zero {position:absolute;left:22%;width:1px;background:#a7b2b9;top:0;bottom:0}
+  .bar {position:absolute;height:13px;top:3px;border-radius:2px;min-width:2px;cursor:help;outline-offset:2px}
+  .bar:focus-visible {outline:2px solid #1648ac}
+  .bar.red {background:var(--red)}
+  .bar.green {background:var(--green)}
+  .bar.short {opacity:.50}
+  .value {position:absolute;right:0;top:0;min-width:41px;text-align:right;font-size:12px;font-variant-numeric:tabular-nums;font-weight:750;line-height:19px}
+  .footer {font-size:11px;color:var(--muted);line-height:1.5;border-top:1px solid var(--line);padding-top:10px;margin-top:1px}
+  .tip {position:fixed;z-index:1000;max-width:230px;padding:9px 11px;border-radius:7px;background:#18232c;color:white;font-size:12px;line-height:1.6;box-shadow:0 3px 15px #0003;pointer-events:none}
+  .tip[hidden] {display:none}
+  @media(max-width:500px){.wrap{padding:14px 10px 10px}.row{grid-template-columns:88px minmax(0,1fr);gap:5px;padding:10px 0}.name{font-size:12px}.legend{font-size:11px}.intro{font-size:12px}.track{right:40px}.value{font-size:11px}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<h1>Indbrud: Udviklingen i seks kommuner</h1>
+<p class="intro">Procentvis ændring i anmeldte indbrud i 3. kvartal 2026 sammenlignet med samme kvartal i 2022 og 2025.</p>
+<div class="legend" aria-label="Forklaring"><span><i class="key"></i>2022–2026</span><span><i class="key short"></i>2025–2026</span></div>
+<section id="chart" aria-label="Indbrud i Favrskov, Norddjurs, Skanderborg, Aarhus, Randers og Syddjurs"></section>
+<div class="footer">Rød = stigning · Grøn = fald. Hver kommune har to søjler: den øverste viser 2022–2026, den nederste 2025–2026. Procenttal er afrundet som i kildetabellen.<br>Kilde: Danmarks Statistik og Bo trygt.</div>
+</main>
+<div class="tip" id="tip" hidden></div>
+<script>
+(() => {
+  'use strict';
+  const rows = [
+    {name:'Favrskov',from22:29,from25:35,to26:69,long:138,short:97},
+    {name:'Norddjurs',from22:20,from25:56,to26:46,long:130,short:-18},
+    {name:'Skanderborg',from22:31,from25:78,to26:68,long:119,short:-13},
+    {name:'Aarhus',from22:255,from25:348,to26:491,long:93,short:41},
+    {name:'Randers',from22:71,from25:54,to26:82,long:15,short:52},
+    {name:'Syddjurs',from22:17,from25:21,to26:19,long:12,short:-10}
+  ];
+  const min=-40, max=150, x=n => 100*(n-min)/(max-min), zero=x(0);
+  const chart=document.getElementById('chart'),tip=document.getElementById('tip');
+  // Fjern eventuelle søjler, hvis filen er gemt fra en allerede renderet webside.
+  chart.replaceChildren();
+  const fmt=n => `${n>0?'+':''}${n} %`;
+  function hideTip(){tip.hidden=true}
+  function showTip(ev, data, period, from, value, bar){
+    tip.replaceChildren();
+    const strong=document.createElement('strong');strong.textContent=data.name;
+    tip.append(strong,document.createElement('br'),`${period}: ${fmt(value)}`,document.createElement('br'),`${from} → ${data.to26} indbrud`);
+    tip.hidden=false;
+    const rect=bar.getBoundingClientRect(), atX=ev.clientX||rect.left+rect.width/2, atY=ev.clientY||rect.top;
+    tip.style.left=`${Math.max(8,Math.min(window.innerWidth-tip.offsetWidth-8,atX+12))}px`;
+    tip.style.top=`${Math.max(8,atY-tip.offsetHeight-10)}px`;
+  }
+  for(const data of rows){
+    const row=document.createElement('div');row.className='row';
+    const name=document.createElement('div');name.className='name';name.textContent=data.name;row.append(name);
+    const stack=document.createElement('div');stack.className='series';
+    for(const [kind,period,from,value] of [['long','2022–2026',data.from22,data.long],['short','2025–2026',data.from25,data.short]]){
+      const line=document.createElement('div');line.className='barline';
+      const track=document.createElement('div');track.className='track';
+      const baseline=document.createElement('div');baseline.className='zero';track.append(baseline);
+      const bar=document.createElement('div');bar.className=`bar ${value>=0?'red':'green'} ${kind}`;
+      bar.style.left=`${Math.min(x(value),zero)}%`;bar.style.width=`${Math.abs(x(value)-zero)}%`;
+      bar.setAttribute('role','img');bar.setAttribute('tabindex','0');
+      bar.setAttribute('aria-label',`${data.name}, ${period}: ${fmt(value)}; fra ${from} til ${data.to26} indbrud`);
+      bar.addEventListener('mouseenter',ev=>showTip(ev,data,period,from,value,bar));
+      bar.addEventListener('mousemove',ev=>showTip(ev,data,period,from,value,bar));
+      bar.addEventListener('mouseleave',hideTip);
+      bar.addEventListener('focus',ev=>showTip(ev,data,period,from,value,bar));
+      bar.addEventListener('blur',hideTip);
+      bar.addEventListener('click',ev=>showTip(ev,data,period,from,value,bar));
+      track.append(bar);line.append(track);
+      const label=document.createElement('span');label.className='value';label.textContent=fmt(value);line.append(label);stack.append(line);
+    }
+    row.append(stack);chart.append(row);
+  }
+})();
+</script>
+</body>
+</html>
