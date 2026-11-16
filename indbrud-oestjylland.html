@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Indbrud i Østjylland</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; font-family: Arial, Helvetica, sans-serif; }
+  #kort { position: absolute; inset: 0; }
+  .vejnavn {
+    background: #fff; border: 1px solid #b00020; border-radius: 3px;
+    color: #222; font-size: 12px; font-weight: bold; padding: 1px 5px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.25);
+  }
+  .vejnavn::before { display: none; }
+  .skjul-navne .vejnavn { display: none; }
+  .hint {
+    position: absolute; z-index: 1000; left: 50%; bottom: 28px; transform: translateX(-50%);
+    background: rgba(0,0,0,.7); color: #fff; font-size: 13px; padding: 5px 10px;
+    border-radius: 4px; pointer-events: none; transition: opacity .3s;
+  }
+</style>
+</head>
+<body>
+<div id="kort"></div>
+<div class="hint" id="hint">Zoom ind for at se vejnavnene · klik på et punkt</div>
+<script>
+  // Vejenes midtpunkt, slået op i OpenStreetMap (Nominatim)
+  var indbrud = [
+    ["Gustav Holms Vej", "Aarhus N",   56.18458, 10.21071],
+    ["Jupitervej",       "Højbjerg",   56.13027, 10.18922],
+    ["Fejøvænget",       "Tilst",      56.17814, 10.10231],
+    ["Skovbrynet",       "Hammel",     56.26383,  9.85702],
+    ["Februarvej",       "Aarhus V",   56.17748, 10.16120],
+    ["Terp Skovvej",     "Højbjerg",   56.12637, 10.18193],
+    ["Filsøvej",         "Risskov",    56.20610, 10.24463],
+    ["Engdalsvej",       "Ebeltoft",   56.22798, 10.66548],
+    ["Havkærvej",        "Tilst",      56.18529, 10.11972],
+    ["Vestre Strandallé","Risskov",    56.19225, 10.22999],
+    ["Drejøvænget",      "Tilst",      56.17405, 10.09776],
+    ["Alphavej",         "Højbjerg",   56.12870, 10.18858],
+    ["Solbakken",        "Risskov",    56.18874, 10.23309],
+    ["Obovej",           "Randers SV", 56.43448, 10.03481],
+    ["Præstetoften",     "Beder",      56.06106, 10.21857],
+    ["Præstelodden",     "Beder",      56.06169, 10.22047]
+  ];
+
+  var kort = L.map("kort", { scrollWheelZoom: false });
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 18,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>'
+  }).addTo(kort);
+
+  var punkter = [];
+  indbrud.forEach(function (i) {
+    var m = L.circleMarker([i[2], i[3]], {
+      radius: 8, color: "#fff", weight: 2, fillColor: "#b00020", fillOpacity: 1
+    }).addTo(kort);
+    m.bindTooltip(i[0], { permanent: true, direction: "right", offset: [8, 0], className: "vejnavn" });
+    m.bindPopup("<b>" + i[0] + "</b><br>" + i[1]);
+    punkter.push([i[2], i[3]]);
+  });
+
+  kort.fitBounds(punkter, { padding: [30, 30] });
+
+  // Vejnavne vises først, når man zoomer ind, så de ikke ligger oven i hinanden
+  function opdaterNavne() {
+    document.getElementById("kort").classList.toggle("skjul-navne", kort.getZoom() < 13);
+  }
+  kort.on("zoomend", opdaterNavne);
+  opdaterNavne();
+
+  // Musehjulet zoomer først, når læseren har klikket på kortet
+  kort.on("click", function () {
+    kort.scrollWheelZoom.enable();
+    document.getElementById("hint").style.opacity = 0;
+  });
+  kort.on("mouseout", function () { kort.scrollWheelZoom.disable(); });
+  if ("ontouchstart" in window) { document.getElementById("hint").style.display = "none"; }
+</script>
+</body>
+</html>
